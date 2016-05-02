@@ -7,6 +7,7 @@ import org.opencv.core.MatOfByte;
 import org.opencv.core.MatOfFloat;
 import org.opencv.core.MatOfPoint;
 import org.opencv.core.MatOfPoint2f;
+import org.opencv.core.Point;
 import org.opencv.imgproc.Imgproc;
 import org.opencv.video.Video;
 
@@ -38,29 +39,70 @@ public class EvaluateFrameTransformationByOpenCV implements EvaluateFrameTransfo
 	    MatOfPoint2f matOfPoint2f2 = new MatOfPoint2f();
 	    Video.calcOpticalFlowPyrLK(mat1, mat2, matOfPoint2f1, matOfPoint2f2, status, err);
 	
+//	    System.out.println("start");
+//	    System.out.print("width");
 //	    System.out.println(status.width());
+//	    System.out.print("height");
 //	    System.out.println(status.height());
 //	    
-//	    Mat mat1_corner = new Mat();
-//	    Mat mat2_corner = new Mat();
+//	    System.out.print("width");
+//	    System.out.println(matOfPoint2f1.width());
+//	    System.out.print("height");
+//	    System.out.println(matOfPoint2f1.height());
 //	    
-//	    System.out.println(status.height());
-//	    System.out.println(status.width());
-//		for (int i = 0; i != status.height(); i++) {
-//
-////			System.out.println(i);
-////			System.out.println(status.get(i, 0).length);
-////			System.out.println(status.get(i, 0)[0]);
-//			if (status.get(i, 0)[0] != 0) {
-//				mat1_corner.push_back(matOfPoint2f1);
-//				mat2_corner.push_back(matOfPoint2f2);
-////				System.out.println(matOfPoint2f1.dump());
-////				System.out.println(matOfPoint2f2.dump());
-//			}
-
-//		}
+//	    System.out.print("width");
+//	    System.out.println(matOfPoint2f2.width());
+//	    System.out.print("height");
+//	    System.out.println(matOfPoint2f2.height());
+//	    
+//	    
+	    MatOfPoint2f mat1_corner = new MatOfPoint2f();
+	    MatOfPoint2f mat2_corner = new MatOfPoint2f();
 	    
-	    return null;
+//	    System.out.println(status.height());
+//	    System.out.println(status.width());
+		for (int i = 0; i != status.height(); i++) {
+//			System.out.println(status.get(i, 0).length);
+//			System.out.println(status.get(i, 0)[0]);
+			if (status.get(i, 0)[0] > 0.5) { // > 0.5 <=> != 0
+				double[] temp = matOfPoint2f1.get(i, 0);
+				Point tempPoint = new Point(temp);
+				MatOfPoint2f tempMat = new MatOfPoint2f(tempPoint);
+				mat1_corner.push_back(tempMat);
+				temp = matOfPoint2f2.get(i, 0);
+				tempPoint = new Point(temp);
+				tempMat = new MatOfPoint2f(tempPoint);
+				mat2_corner.push_back(tempMat);
+				
+			}
+			
+
+		}
+//		System.out.println(matOfPoint2f1.dump());
+//		System.out.println(matOfPoint2f2.dump());
+//		System.out.println(mat1_corner.dump());
+//		System.out.println(mat2_corner.dump());
+	    Mat T = Video.estimateRigidTransform(mat1_corner, mat2_corner, false);
+//		Mat T = Video.estimateRigidTransform(matOfPoint2f1, matOfPoint2f2, false);
+//	    System.out.println(T.width());
+//	    System.out.println(T.height());
+//	    System.out.println(T.get(0,2)[0]);
+	    double dx, dy, da;
+	    if(T.width() == 3 && T.height() == 2){
+	    	dx = T.get(0, 2)[0];
+	    	dy = T.get(1, 2)[0];
+	    	da = Math.atan2(T.get(1, 0)[0], T.get(0, 0)[0]);
+	    }
+	    else{
+	    	dx = 0;
+	    	dy = 0;
+	    	da =0;
+	    }
+	    
+	    FrameTransformation frameTransformation = new FrameTransformation(dx, dy, da);
+	    
+	    System.out.println(frameTransformation);
+	    return frameTransformation;
 	}
 	
 	private Mat transformBufferedImageToMat(BufferedImage img){

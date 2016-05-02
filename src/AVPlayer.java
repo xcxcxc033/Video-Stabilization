@@ -240,14 +240,15 @@ public class AVPlayer {
 		
 
 			while (true) {
-//				BufferedImage img = playImage.getCurrentImg();
-				BufferedImage img = playImage.getCurrentImageProcessed();
+				BufferedImage img = playImage.getCurrentImg();
+//				BufferedImage img = playImage.getCurrentImageProcessed();
 				while (img == null) {
-//					img = playImage.getCurrentImg();
-					img =  playImage.getCurrentImageProcessed();
+					img = playImage.getCurrentImg();
+//					img =  playImage.getCurrentImageProcessed();
 					Thread.sleep(10);
 
 				}
+				System.out.println(playImage.frameTransformationResult[playImage.getCurrent()]);
 //				double similarity = evaluateSimilarity.evaluateSimilarityBetweenImage(img, rightImg);
 //				System.out.printf("%f, %f\n",similarity, maxSimilarity);
 //				if(maxSimilarity < similarity){
