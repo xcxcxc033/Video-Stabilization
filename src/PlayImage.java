@@ -374,6 +374,10 @@ public class PlayImage {
 		y = 0;
 		
 		for(int i = 0; i < end-start; i++){
+			x+=  frameTransformationResult[i+start].getDx();
+			y+=  frameTransformationResult[i+start].getDy();
+			a+=  frameTransformationResult[i+start].getDa();
+			
 			double diff_x = smoothed_trajectory.get(i).getDx() - x;
 			double diff_y = smoothed_trajectory.get(i).getDy() - y;
 			double diff_a = smoothed_trajectory.get(i).getDa() - a;
