@@ -79,6 +79,8 @@ public class PlayImage {
 		Thread read = new Thread() {
 			public void run() {
 				PlayImage.this.allFrames(filename);
+				
+				PlayImage.this.getEvaluateFrameTransformationResult();
 //				PlayImage.this.evaluateMotionResult = PlayImage.this
 //						.getEvaluateMotionResult();
 //				PlayImage.this.evaluateSenceChangeResult = PlayImage.this.getSenceChangeResult();
@@ -284,6 +286,19 @@ public class PlayImage {
 		for (int i = 0; i < bufferedImgs.length; i++) {
 			result[i] = evaluateSimilarity.evaluateSimilarityBetweenImage(
 					bufferedImgs[i], compareImage);
+		}
+		
+		
+		return result;
+	}
+	
+	public FrameTransformation[] getEvaluateFrameTransformationResult(){
+		EvaluateFrameTransformation evaluateFrameTransformation = new EvaluateFrameTransformationByOpenCV();
+		FrameTransformation[] result = new FrameTransformation[bufferedImgs.length];
+		result[0] = null;
+		for (int i = 1; i < bufferedImgs.length; i++) {
+			result[i] = evaluateFrameTransformation.evaluateMotionBetweenImage(
+					bufferedImgs[i-1], bufferedImgs[i]);
 		}
 		
 		
