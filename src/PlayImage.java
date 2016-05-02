@@ -36,6 +36,7 @@ public class PlayImage {
 	private int SMOOTHING_RADIUS = 30; // In frames. The larger the more stable the video, but less reactive to sudden panning
 	private int HORIZONTAL_BORDER_CROP = 20; // In pixels. Crops the border to reduce the black borders from stabilisation being too noticeable.
 	private BufferedImage[] adjustedImages;
+	private int debugProcessRatio = 10;
 
 
 	// peter
@@ -58,17 +59,11 @@ public class PlayImage {
 	
 	
 
-	public PlayImage(final String filename, BufferedImage compareImage) {
-		this.compareImage = compareImage;
+	public PlayImage(final String filename) {
+		
 		this.filename = filename;
 		File file = new File(filename);
-		InputStream is;
-		try {
-			is = new FileInputStream(file);
-		} catch (FileNotFoundException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
+		
 
 		// long len = file.length();
 		long len = width * height * 3;
@@ -90,7 +85,7 @@ public class PlayImage {
 				PlayImage.this.allFrames(filename);
 				
 				PlayImage.this.frameTransformationResult = PlayImage.this.getEvaluateFrameTransformationResult();
-				PlayImage.this.newPrevToCurResult = PlayImage.this.getNewPrevToCurTransformResult(0, frameTransformationResult.length);
+				PlayImage.this.newPrevToCurResult = PlayImage.this.getNewPrevToCurTransformResult(0, frameTransformationResult.length/debugProcessRatio);
 				PlayImage.this.adjustedImages =PlayImage.this.adjustFrames();
 //				PlayImage.this.evaluateSimilarityResult = PlayImage.this.getEvaluateSimilarityResult();
 //				for (int i = 0; i != PlayImage.this.evaluateSimilarityResult.length; i++) {
@@ -130,7 +125,7 @@ public class PlayImage {
 	}
 	public BufferedImage[] adjustFrames(){
 		BufferedImage[] result = new BufferedImage[bufferedImgs.length];
-		for(int i = 0 ; i!= bufferedImgs.length; i++){
+		for(int i = 0 ; i!= bufferedImgs.length/debugProcessRatio; i++){
 			result[i] = adjustFrame(bufferedImgs[i], newPrevToCurResult[i]);
 		}
 		return result;
@@ -267,27 +262,19 @@ public class PlayImage {
 			return null;
 		}
 		synchronized (currentLock) {
-			if(current >= frameNumberToPlay.length){
-				return null;
-			}
-//			System.out.println(current);
-//			System.out.println(frameNumberToPlay[current]);
-			if(current != 0 && frameNumberToPlay[current] == 0){
-				return null;
-			}
-			if (frameNumberToPlay[current] >= bufferedImgs.length) {
+			
+			if (current >= bufferedImgs.length) {
+				this.finished = true;
 				return null;
 			}
 			synchronized (locks[current]) {
 				if (last == current) {
-					return null;
-				} else if (bufferedImgs[frameNumberToPlay[current]] == null) {
-//					System.out.println("fdsfssfsdfsf");
+					
 					return null;
 				} else {
-
 					last = current;
-					return bufferedImgs[frameNumberToPlay[current]];
+//					return bufferedImgs[current];
+					return adjustedImages[current]; 
 				}
 
 			}
@@ -323,7 +310,9 @@ public class PlayImage {
 		EvaluateFrameTransformation evaluateFrameTransformation = new EvaluateFrameTransformationByOpenCV();
 		FrameTransformation[] result = new FrameTransformation[bufferedImgs.length];
 		result[0] = new FrameTransformation(0, 0, 0);
-		for (int i = 1; i < bufferedImgs.length; i++) {
+		for (int i = 1; i < bufferedImgs.length/debugProcessRatio; i++) {
+			System.out.println(i);
+			System.out.println(bufferedImgs[i-1]);
 			result[i] = evaluateFrameTransformation.evaluateMotionBetweenImage(
 					bufferedImgs[i-1], bufferedImgs[i]);
 		}
@@ -518,7 +507,7 @@ public class PlayImage {
 						loadedFrame = i;
 					}
 
-//					System.out.println(i);
+					
 				}
 			}
 
@@ -681,8 +670,8 @@ public class PlayImage {
 					return null;
 				} else {
 					last = current;
-//					return bufferedImgs[current];
-					return adjustedImages[current]; 
+					return bufferedImgs[current];
+//					return adjustedImages[current]; 
 				}
 
 			}

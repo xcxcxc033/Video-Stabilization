@@ -150,11 +150,12 @@ public class AVPlayer {
 
 				
 		
-		img_right = readRightImg(args[2],1280,720);
-		this.playImage = new PlayImage(args[0], img_right);
+//		img_right = readRightImg(args[2],1280,720);
+		this.playImage = new PlayImage(args[0]);
 		
 		
 		img = playImage.getFirstImage();
+		img_right = playImage.getFirstImage();
 		// Use labels to display the images
 
 		frame = new JFrame();
@@ -240,14 +241,21 @@ public class AVPlayer {
 		
 
 			while (true) {
-				BufferedImage img = playImage.getCurrentImg();
-//				BufferedImage img = playImage.getCurrentImageProcessed();
+				BufferedImage img = playImage.getCurrentImageProcessed();
+				BufferedImage img2 = playImage.getCurrentImg();
+				
 				while (img == null) {
-					img = playImage.getCurrentImg();
+					img = playImage.getCurrentImageProcessed();
 //					img =  playImage.getCurrentImageProcessed();
+					
 					Thread.sleep(10);
 
 				}
+				while(img2 == null){
+					img2 = playImage.getCurrentImg();
+					Thread.sleep(10);
+				}
+				
 				System.out.println(playImage.newPrevToCurResult[playImage.getCurrent()]);
 //				double similarity = evaluateSimilarity.evaluateSimilarityBetweenImage(img, rightImg);
 //				System.out.printf("%f, %f\n",similarity, maxSimilarity);
@@ -258,7 +266,9 @@ public class AVPlayer {
 				
 //				System.out.println(img);
 				lbIm1.setIcon(new ImageIcon(img));
+				lbIm2.setIcon(new ImageIcon(img2));
 				img = null;
+				img2 = null;
 //				if(playImage.isFinished()){
 //					break;
 //				}
