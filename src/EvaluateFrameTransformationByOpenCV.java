@@ -119,5 +119,50 @@ public class EvaluateFrameTransformationByOpenCV implements EvaluateFrameTransfo
 	     
 	    return mat; 
 	}
+	
+	private BufferedImage transformMatToBufferedImage(Mat mat){
+		BufferedImage img = new BufferedImage(mat.height(), mat.width(), BufferedImage.TYPE_INT_RGB);
+		System.out.println(mat);
+		System.out.println(mat.width());
+		System.out.println(mat.height());
+		
+		for(int i =0; i < img.getWidth(); i++){
+			for(int j = 0; j < img.getHeight(); j++){
+				double[] temp = mat.get(i, j);
+//				System.out.println(temp);
+//				System.out.println(temp.length);
+				int red = (int) temp[0];
+				int green = (int) temp[1];
+				int blue = (int) temp[2];
+				int rgb = 0xff000000 | (red & 0xff) << 16 | (green& 0xff) << 8 | (blue & 0xff);
+				img.setRGB(i, j, rgb);
+			}
+		}
+	     
+	    return img; 
+	}
+	@Override
+	public BufferedImage applyTransformToImage(BufferedImage img,
+			FrameTransformation frameTransformation) {
+		Mat T = new Mat(2,3, CvType.CV_64F);
+		
+		T.put(0, 0, Math.cos(frameTransformation.getDa()));
+		T.put(0, 1, -Math.sin(frameTransformation.getDa()));
+		T.put(1, 0, Math.sin(frameTransformation.getDa()));
+		T.put(1, 1, Math.cos(frameTransformation.getDa()));
+		
+		T.put(0, 2, frameTransformation.getDx());
+		T.put(1, 2, frameTransformation.getDy());
+//		T.put(0, 2, frameTransformation.getDy());
+//		T.put(0, 2, frameTransformation.getDx());
+		Mat cur = transformBufferedImageToMat(img);
+		Mat cur2 = new Mat();
+		Imgproc.warpAffine(cur, cur2, T, cur.size());
+		System.out.println(cur2.width());
+		System.out.println(cur.height());
+		System.out.println(cur2);
+		
+		return transformMatToBufferedImage(cur2);
+	}
 
 }

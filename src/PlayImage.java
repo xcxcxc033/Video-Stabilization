@@ -124,9 +124,11 @@ public class PlayImage {
 
 	}
 	public BufferedImage[] adjustFrames(){
+		EvaluateFrameTransformation evaluateFrameTransformation = new EvaluateFrameTransformationByOpenCV();
 		BufferedImage[] result = new BufferedImage[bufferedImgs.length];
 		for(int i = 0 ; i!= bufferedImgs.length/debugProcessRatio; i++){
-			result[i] = adjustFrame(bufferedImgs[i], newPrevToCurResult[i]);
+//			result[i] = adjustFrame(bufferedImgs[i], newPrevToCurResult[i]);
+			result[i] = evaluateFrameTransformation.applyTransformToImage(bufferedImgs[i], newPrevToCurResult[i]);
 		}
 		return result;
 	}
@@ -311,10 +313,15 @@ public class PlayImage {
 		FrameTransformation[] result = new FrameTransformation[bufferedImgs.length];
 		result[0] = new FrameTransformation(0, 0, 0);
 		for (int i = 1; i < bufferedImgs.length/debugProcessRatio; i++) {
-			System.out.println(i);
-			System.out.println(bufferedImgs[i-1]);
+			BufferedImage temp, temp2;
+			synchronized (locks[i-1]) {
+				temp = bufferedImgs[i-1];
+			}
+			synchronized (locks[i]) {
+				temp2 = bufferedImgs[i];
+			}
 			result[i] = evaluateFrameTransformation.evaluateMotionBetweenImage(
-					bufferedImgs[i-1], bufferedImgs[i]);
+					temp, temp2);
 		}
 		
 		
@@ -393,12 +400,16 @@ public class PlayImage {
 		double[] result = new double[bufferedImgs.length];
 		result[0] = 0;
 		for (int i = 1; i < bufferedImgs.length; i++) {
-//			System.out.println(bufferedImgs[0]);
-//			System.out.println(bufferedImgs[1]);
+			BufferedImage temp, temp2;
+			synchronized (locks[i-1]) {
+				temp = bufferedImgs[i-1];
+			}
+			synchronized (locks[i]) {
+				temp2 = bufferedImgs[i];
+			}
 			result[i] = evaluateMotion.evaluateMotionBetweenImage(
-					bufferedImgs[i - 1], bufferedImgs[i]);
-//			System.out.println(i);
-//			System.out.println(result[i]);
+					temp, temp2);
+
 		}
 		double temp = 0;
 		for (int i = 0; i < bufferedImgs.length; i+= frameRate) {
