@@ -248,7 +248,7 @@ public class AVPlayer {
 					Thread.sleep(10);
 
 				}
-				System.out.println(playImage.frameTransformationResult[playImage.getCurrent()]);
+				System.out.println(playImage.newPrevToCurResult[playImage.getCurrent()]);
 //				double similarity = evaluateSimilarity.evaluateSimilarityBetweenImage(img, rightImg);
 //				System.out.printf("%f, %f\n",similarity, maxSimilarity);
 //				if(maxSimilarity < similarity){

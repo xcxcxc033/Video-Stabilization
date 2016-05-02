@@ -140,7 +140,7 @@ public class PlayImage {
 		for(int i = 0; i != img.getWidth(); i++){
 			for(int j = 0; j != img.getHeight(); j++){
 				int tempX = (int) (i+frameTransformation.getDx());
-				int tempY = (int) (i + frameTransformation.getDy());
+				int tempY = (int) (j + frameTransformation.getDy());
 				if( tempX >= 0 && tempX< img.getWidth() && tempY >= 0 && tempY < img.getHeight()){
 					img2.setRGB(tempX, tempY, img.getRGB(i, j));
 				}
