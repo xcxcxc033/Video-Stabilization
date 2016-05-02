@@ -4,6 +4,7 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.Buffer;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.TimerTask;
@@ -27,10 +28,15 @@ public class PlayImage {
 	private double[] evaluateSimilarityResult;
 	private double[] evaluateSimilarityByColorResult;
 	public FrameTransformation[] frameTransformationResult;
+	public FrameTransformation[] newPrevToCurResult;
 	private int diffByColorThreshold = 100000;
 	private boolean processFinished = false;
 	private int[] frameNumberToPlay;
 	private double[] evaluateSenceChangeResult;
+	private int SMOOTHING_RADIUS = 30; // In frames. The larger the more stable the video, but less reactive to sudden panning
+	private int HORIZONTAL_BORDER_CROP = 20; // In pixels. Crops the border to reduce the black borders from stabilisation being too noticeable.
+	private BufferedImage[] adjustedImages;
+
 
 	// peter
 	public int[][][] histogram = new int[4][4][4];
@@ -84,6 +90,8 @@ public class PlayImage {
 				PlayImage.this.allFrames(filename);
 				
 				PlayImage.this.frameTransformationResult = PlayImage.this.getEvaluateFrameTransformationResult();
+				PlayImage.this.newPrevToCurResult = PlayImage.this.getNewPrevToCurTransformResult(0, frameTransformationResult.length);
+				PlayImage.this.adjustedImages =PlayImage.this.adjustFrames();
 //				PlayImage.this.evaluateSimilarityResult = PlayImage.this.getEvaluateSimilarityResult();
 //				for (int i = 0; i != PlayImage.this.evaluateSimilarityResult.length; i++) {
 //					System.out.printf("%d: %f\n", i, PlayImage.this.evaluateSimilarityResult[i]);
@@ -119,6 +127,26 @@ public class PlayImage {
 		}; 
 		read.start();
 
+	}
+	public BufferedImage[] adjustFrames(){
+		BufferedImage[] result = new BufferedImage[bufferedImgs.length];
+		for(int i = 0 ; i!= bufferedImgs.length; i++){
+			result[i] = adjustFrame(bufferedImgs[i], newPrevToCurResult[i]);
+		}
+		return result;
+	}
+	public BufferedImage adjustFrame(BufferedImage img, FrameTransformation frameTransformation){
+		BufferedImage img2 = new BufferedImage(img.getWidth(), img.getHeight(), img.getType());
+		for(int i = 0; i != img.getWidth(); i++){
+			for(int j = 0; j != img.getHeight(); j++){
+				int tempX = (int) (i+frameTransformation.getDx());
+				int tempY = (int) (i + frameTransformation.getDy());
+				if( tempX >= 0 && tempX< img.getWidth() && tempY >= 0 && tempY < img.getHeight()){
+					img2.setRGB(tempX, tempY, img.getRGB(i, j));
+				}
+			}
+		}
+		return img2;
 	}
 	
 	public double findMax(double[] value){
@@ -294,7 +322,7 @@ public class PlayImage {
 	public FrameTransformation[] getEvaluateFrameTransformationResult(){
 		EvaluateFrameTransformation evaluateFrameTransformation = new EvaluateFrameTransformationByOpenCV();
 		FrameTransformation[] result = new FrameTransformation[bufferedImgs.length];
-		result[0] = null;
+		result[0] = new FrameTransformation(0, 0, 0);
 		for (int i = 1; i < bufferedImgs.length; i++) {
 			result[i] = evaluateFrameTransformation.evaluateMotionBetweenImage(
 					bufferedImgs[i-1], bufferedImgs[i]);
@@ -302,6 +330,66 @@ public class PlayImage {
 		
 		
 		return result;
+	}
+	
+	public FrameTransformation[] getNewPrevToCurTransformResult(int start, int end){
+		double a = 0;
+		double x = 0;
+		double y = 0;
+		List<FrameTransformation> trajectory = new ArrayList<>();
+		
+		for(int i = start; i< end; i++){
+			x += frameTransformationResult[i].getDx();
+			y += frameTransformationResult[i].getDy();
+			a += frameTransformationResult[i].getDa();
+			
+			trajectory.add(new FrameTransformation(x, y, a));
+		}
+		
+		List<FrameTransformation> smoothed_trajectory = new ArrayList<>();
+		
+		for(int i = 0; i < end-start; i++){
+			double sum_x = 0;
+			double sum_y = 0;
+			double sum_a = 0;
+			int count = 0;
+			for(int j=-SMOOTHING_RADIUS; j <= SMOOTHING_RADIUS; j++){
+				if(i+j>=0 && i+j < end-start){
+					sum_x += trajectory.get(i+j).getDx();
+					sum_y += trajectory.get(i+j).getDy();
+					sum_a += trajectory.get(i+j).getDa();
+					
+					count++;
+				}
+			}
+			double avg_a = sum_a /count;
+			double avg_x = sum_x/count;
+			double avg_y = sum_y / count;
+			smoothed_trajectory.add(new FrameTransformation(avg_x,avg_y, avg_a));
+		}
+		
+		List<FrameTransformation> new_prev_to_cur_transform = new ArrayList<>();
+		a = 0;
+		x = 0;
+		y = 0;
+		
+		for(int i = 0; i < end-start; i++){
+			double diff_x = smoothed_trajectory.get(i).getDx() - x;
+			double diff_y = smoothed_trajectory.get(i).getDy() - y;
+			double diff_a = smoothed_trajectory.get(i).getDa() - a;
+			
+			double dx = frameTransformationResult[i+start].getDx() + diff_x; 
+			double dy = frameTransformationResult[i+start].getDy() + diff_y; 
+			double da = frameTransformationResult[i+start].getDa() + diff_a; 
+			
+			new_prev_to_cur_transform.add(new FrameTransformation(dx, dy, da));
+		}
+		FrameTransformation[] result = new FrameTransformation[new_prev_to_cur_transform.size()];
+		for(int i = 0 ;i != result.length; i++){
+			result[i] = new_prev_to_cur_transform.get(i);
+		}
+		return result;
+		
 	}
 	public double[] getEvaluateMotionResult() {
 		// EvaluateMotion evaluateMotion = new EvaluateMotionByFramePredict(15,
@@ -589,7 +677,8 @@ public class PlayImage {
 					return null;
 				} else {
 					last = current;
-					return bufferedImgs[current];
+//					return bufferedImgs[current];
+					return adjustedImages[current]; 
 				}
 
 			}
