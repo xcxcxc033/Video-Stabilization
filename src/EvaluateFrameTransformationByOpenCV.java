@@ -14,7 +14,7 @@ import org.opencv.video.Video;
 
 public class EvaluateFrameTransformationByOpenCV implements EvaluateFrameTransformation{
 
-	private int maxCornersInImage = 200;
+	private int maxKeyPoint = 200;
 	private double qualityLevelInImage = 0.01;
 	private double minDistanceInImage = 30;
 	
@@ -31,7 +31,7 @@ public class EvaluateFrameTransformationByOpenCV implements EvaluateFrameTransfo
 		Mat mat2 = new Mat();
 	    Imgproc.cvtColor(mat_temp2, mat2, Imgproc.COLOR_RGB2GRAY);
 	    MatOfPoint matOfPoint1 = new MatOfPoint(); 
-	    Imgproc.goodFeaturesToTrack(mat1, matOfPoint1, maxCornersInImage, qualityLevelInImage, minDistanceInImage);
+	    Imgproc.goodFeaturesToTrack(mat1, matOfPoint1, maxKeyPoint, qualityLevelInImage, minDistanceInImage);
 
 	    MatOfByte status = new MatOfByte();
 	    MatOfFloat err = new MatOfFloat();
@@ -39,23 +39,7 @@ public class EvaluateFrameTransformationByOpenCV implements EvaluateFrameTransfo
 	    MatOfPoint2f matOfPoint2f2 = new MatOfPoint2f();
 	    Video.calcOpticalFlowPyrLK(mat1, mat2, matOfPoint2f1, matOfPoint2f2, status, err);
 	
-//	    System.out.println("start");
-//	    System.out.print("width");
-//	    System.out.println(status.width());
-//	    System.out.print("height");
-//	    System.out.println(status.height());
-//	    
-//	    System.out.print("width");
-//	    System.out.println(matOfPoint2f1.width());
-//	    System.out.print("height");
-//	    System.out.println(matOfPoint2f1.height());
-//	    
-//	    System.out.print("width");
-//	    System.out.println(matOfPoint2f2.width());
-//	    System.out.print("height");
-//	    System.out.println(matOfPoint2f2.height());
-//	    
-//	    
+    
 	    MatOfPoint2f mat1_corner = new MatOfPoint2f();
 	    MatOfPoint2f mat2_corner = new MatOfPoint2f();
 	    
@@ -82,16 +66,13 @@ public class EvaluateFrameTransformationByOpenCV implements EvaluateFrameTransfo
 //		System.out.println(matOfPoint2f2.dump());
 //		System.out.println(mat1_corner.dump());
 //		System.out.println(mat2_corner.dump());
-	    Mat T = Video.estimateRigidTransform(mat1_corner, mat2_corner, false);
-//		Mat T = Video.estimateRigidTransform(matOfPoint2f1, matOfPoint2f2, false);
-//	    System.out.println(T.width());
-//	    System.out.println(T.height());
-//	    System.out.println(T.get(0,2)[0]);
+	    Mat transform = Video.estimateRigidTransform(mat1_corner, mat2_corner, false);
+
 	    double dx, dy, da;
-	    if(T.width() == 3 && T.height() == 2){
-	    	dx = T.get(0, 2)[0];
-	    	dy = T.get(1, 2)[0];
-	    	da = Math.atan2(T.get(1, 0)[0], T.get(0, 0)[0]);
+	    if(transform.width() == 3 && transform.height() == 2){
+	    	dx = transform.get(0, 2)[0];
+	    	dy = transform.get(1, 2)[0];
+	    	da = Math.atan2(transform.get(1, 0)[0], transform.get(0, 0)[0]);
 	    }
 	    else{
 	    	dx = 0;
@@ -144,20 +125,19 @@ public class EvaluateFrameTransformationByOpenCV implements EvaluateFrameTransfo
 	@Override
 	public BufferedImage applyTransformToImage(BufferedImage img,
 			FrameTransformation frameTransformation) {
-		Mat T = new Mat(2,3, CvType.CV_64F);
+		Mat transform = new Mat(2,3, CvType.CV_64F);
 		
-		T.put(0, 0, Math.cos(frameTransformation.getDa()));
-		T.put(0, 1, -Math.sin(frameTransformation.getDa()));
-		T.put(1, 0, Math.sin(frameTransformation.getDa()));
-		T.put(1, 1, Math.cos(frameTransformation.getDa()));
+		transform.put(0, 0, Math.cos(frameTransformation.getDa()));
+		transform.put(0, 1, -Math.sin(frameTransformation.getDa()));
+		transform.put(1, 0, Math.sin(frameTransformation.getDa()));
+		transform.put(1, 1, Math.cos(frameTransformation.getDa()));
 		
-		T.put(0, 2, frameTransformation.getDx());
-		T.put(1, 2, frameTransformation.getDy());
-//		T.put(0, 2, frameTransformation.getDy());
-//		T.put(0, 2, frameTransformation.getDx());
+		transform.put(0, 2, frameTransformation.getDx());
+		transform.put(1, 2, frameTransformation.getDy());
+
 		Mat cur = transformBufferedImageToMat(img);
 		Mat cur2 = new Mat();
-		Imgproc.warpAffine(cur, cur2, T, cur.size());
+		Imgproc.warpAffine(cur, cur2, transform, cur.size());
 		System.out.println(cur2.width());
 		System.out.println(cur.height());
 		System.out.println(cur2);

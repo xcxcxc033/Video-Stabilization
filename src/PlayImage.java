@@ -28,15 +28,15 @@ public class PlayImage {
 	private double[] evaluateSimilarityResult;
 	private double[] evaluateSimilarityByColorResult;
 	public FrameTransformation[] frameTransformationResult;
-	public FrameTransformation[] newPrevToCurResult;
+	public FrameTransformation[] newTransformResult;
 	private int diffByColorThreshold = 100000;
 	private boolean processFinished = false;
 	private int[] frameNumberToPlay;
 	private double[] evaluateSenceChangeResult;
-	private int SMOOTHING_RADIUS = 30; // In frames. The larger the more stable the video, but less reactive to sudden panning
-	private int HORIZONTAL_BORDER_CROP = 20; // In pixels. Crops the border to reduce the black borders from stabilisation being too noticeable.
+	private int windowWidth = 30; 
+
 	private BufferedImage[] adjustedImages;
-	private int debugProcessRatio = 10;
+	private int debugProcessRatio = 1;
 
 
 	// peter
@@ -85,7 +85,7 @@ public class PlayImage {
 				PlayImage.this.allFrames(filename);
 				
 				PlayImage.this.frameTransformationResult = PlayImage.this.getEvaluateFrameTransformationResult();
-				PlayImage.this.newPrevToCurResult = PlayImage.this.getNewPrevToCurTransformResult(0, frameTransformationResult.length/debugProcessRatio);
+				PlayImage.this.newTransformResult = PlayImage.this.getNewTransformResult(0, frameTransformationResult.length/debugProcessRatio);
 				PlayImage.this.adjustedImages =PlayImage.this.adjustFrames();
 //				PlayImage.this.evaluateSimilarityResult = PlayImage.this.getEvaluateSimilarityResult();
 //				for (int i = 0; i != PlayImage.this.evaluateSimilarityResult.length; i++) {
@@ -131,8 +131,8 @@ public class PlayImage {
 		EvaluateFrameTransformation evaluateFrameTransformation = new EvaluateFrameTransformationByOpenCV();
 		BufferedImage[] result = new BufferedImage[bufferedImgs.length];
 		for(int i = 0 ; i!= bufferedImgs.length/debugProcessRatio; i++){
-//			result[i] = adjustFrame(bufferedImgs[i], newPrevToCurResult[i]);
-			result[i] = evaluateFrameTransformation.applyTransformToImage(bufferedImgs[i], newPrevToCurResult[i]);
+			result[i] = adjustFrame(bufferedImgs[i], newTransformResult[i]);
+			//result[i] = evaluateFrameTransformation.applyTransformToImage(bufferedImgs[i], newPrevToCurResult[i]);
 		}
 		return result;
 	}
@@ -140,8 +140,8 @@ public class PlayImage {
 		BufferedImage img2 = new BufferedImage(img.getWidth(), img.getHeight(), img.getType());
 		for(int i = 0; i != img.getWidth(); i++){
 			for(int j = 0; j != img.getHeight(); j++){
-				int tempX = (int) (i+frameTransformation.getDx());
-				int tempY = (int) (j + frameTransformation.getDy());
+				int tempX = (int) (i + frameTransformation.getDy());
+				int tempY = (int) (j + frameTransformation.getDx());
 				if( tempX >= 0 && tempX< img.getWidth() && tempY >= 0 && tempY < img.getHeight()){
 					img2.setRGB(tempX, tempY, img.getRGB(i, j));
 				}
@@ -307,8 +307,6 @@ public class PlayImage {
 			result[i] = evaluateSimilarity.evaluateSimilarityBetweenImage(
 					bufferedImgs[i], compareImage);
 		}
-		
-		
 		return result;
 	}
 	
@@ -332,43 +330,43 @@ public class PlayImage {
 		return result;
 	}
 	
-	public FrameTransformation[] getNewPrevToCurTransformResult(int start, int end){
+	public FrameTransformation[] getNewTransformResult(int start, int end){
 		double a = 0;
 		double x = 0;
 		double y = 0;
-		List<FrameTransformation> trajectory = new ArrayList<>();
+		List<FrameTransformation> path = new ArrayList<>();
 		
 		for(int i = start; i< end; i++){
 			x += frameTransformationResult[i].getDx();
 			y += frameTransformationResult[i].getDy();
 			a += frameTransformationResult[i].getDa();
 			
-			trajectory.add(new FrameTransformation(x, y, a));
+			path.add(new FrameTransformation(x, y, a));
 		}
 		
-		List<FrameTransformation> smoothed_trajectory = new ArrayList<>();
+		List<FrameTransformation> pathWithWindow = new ArrayList<>();
 		
 		for(int i = 0; i < end-start; i++){
-			double sum_x = 0;
-			double sum_y = 0;
-			double sum_a = 0;
-			int count = 0;
-			for(int j=-SMOOTHING_RADIUS; j <= SMOOTHING_RADIUS; j++){
+			double xTotal = 0;
+			double yTotal = 0;
+			double aTotal = 0;
+			int number = 0;
+			for(int j=-windowWidth; j <= windowWidth; j++){
 				if(i+j>=0 && i+j < end-start){
-					sum_x += trajectory.get(i+j).getDx();
-					sum_y += trajectory.get(i+j).getDy();
-					sum_a += trajectory.get(i+j).getDa();
+					xTotal += path.get(i+j).getDx();
+					yTotal += path.get(i+j).getDy();
+					aTotal += path.get(i+j).getDa();
 					
-					count++;
+					number++;
 				}
 			}
-			double avg_a = sum_a /count;
-			double avg_x = sum_x/count;
-			double avg_y = sum_y / count;
-			smoothed_trajectory.add(new FrameTransformation(avg_x,avg_y, avg_a));
+			double aAvg = aTotal /number;
+			double xAvg = xTotal/number;
+			double yAvg = yTotal / number;
+			pathWithWindow.add(new FrameTransformation(xAvg,yAvg, aAvg));
 		}
 		
-		List<FrameTransformation> new_prev_to_cur_transform = new ArrayList<>();
+		List<FrameTransformation> newFrameTransformation = new ArrayList<>();
 		a = 0;
 		x = 0;
 		y = 0;
@@ -378,19 +376,19 @@ public class PlayImage {
 			y+=  frameTransformationResult[i+start].getDy();
 			a+=  frameTransformationResult[i+start].getDa();
 			
-			double diff_x = smoothed_trajectory.get(i).getDx() - x;
-			double diff_y = smoothed_trajectory.get(i).getDy() - y;
-			double diff_a = smoothed_trajectory.get(i).getDa() - a;
+			double xDist = pathWithWindow.get(i).getDx() - x;
+			double yDist = pathWithWindow.get(i).getDy() - y;
+			double aDist = pathWithWindow.get(i).getDa() - a;
 			
-			double dx = frameTransformationResult[i+start].getDx() + diff_x; 
-			double dy = frameTransformationResult[i+start].getDy() + diff_y; 
-			double da = frameTransformationResult[i+start].getDa() + diff_a; 
+			double dx = frameTransformationResult[i+start].getDx() + xDist; 
+			double dy = frameTransformationResult[i+start].getDy() + yDist; 
+			double da = frameTransformationResult[i+start].getDa() + aDist; 
 			
-			new_prev_to_cur_transform.add(new FrameTransformation(dx, dy, da));
+			newFrameTransformation.add(new FrameTransformation(dx, dy, da));
 		}
-		FrameTransformation[] result = new FrameTransformation[new_prev_to_cur_transform.size()];
+		FrameTransformation[] result = new FrameTransformation[newFrameTransformation.size()];
 		for(int i = 0 ;i != result.length; i++){
-			result[i] = new_prev_to_cur_transform.get(i);
+			result[i] = newFrameTransformation.get(i);
 		}
 		return result;
 		
