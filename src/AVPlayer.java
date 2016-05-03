@@ -356,13 +356,13 @@ public class AVPlayer {
 					AVPlayer.this.playImage.startOrContinue();
 					btnStart.setIcon(ButtonLayOut.ChangeImgSize(new ImageIcon(
 							"pause.png"), 60, 60));
-//					playSound.startOrResume();
+					playSound.startOrResume();
 					is_pause = true;
 				} else {
 					AVPlayer.this.playImage.pause();
 					btnStart.setIcon(ButtonLayOut.ChangeImgSize(new ImageIcon(
 							"start.png"), 60, 60));
-//					playSound.Stop();
+					playSound.Stop();
 					is_pause = false;
 				}
 

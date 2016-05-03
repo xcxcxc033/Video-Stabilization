@@ -100,16 +100,20 @@ public class PlayImage {
 ////				for (int i = 0; i != PlayImage.this.frameNumberToPlay.length; i++) {
 ////					System.out.println(PlayImage.this.frameNumberToPlay[i]);
 ////				}
-//				CommunicateVariables communicateVariables = CommunicateVariables.getSingular();
-//				communicateVariables.imageIndexInput(frameNumberToPlay);
-//				while(! communicateVariables.finished()){
-//					try {
-//						Thread.sleep(10);
-//					} catch (InterruptedException e) {
-//						// TODO Auto-generated catch block
-//						e.printStackTrace();
-//					}
-//				}
+				frameNumberToPlay = new int[bufferedImgs.length-1];
+				for(int i = 0; i != frameNumberToPlay.length-1; i++){
+					frameNumberToPlay[i] = i;
+				}
+				CommunicateVariables communicateVariables = CommunicateVariables.getSingular();
+				communicateVariables.imageIndexInput(frameNumberToPlay);
+				while(! communicateVariables.finished()){
+					try {
+						Thread.sleep(10);
+					} catch (InterruptedException e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+					}
+				}
 //				
 //				frameNumberToPlay = communicateVariables.getIndex();
 ////				for (int i = 0; i != PlayImage.this.frameNumberToPlay.length; i++) {

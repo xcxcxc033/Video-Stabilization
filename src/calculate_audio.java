@@ -63,13 +63,13 @@ public class calculate_audio {
 			}
 			double db = soundLevel(buffer);
 			
-			if(db > -7.50){
-				index[index_iter++] = i/3200;
-				for(int j = i; j < i + buffer.length; j++){
-					if(j >= audioBuffer.length) break;
-					new_audioBuffer[new_iter++] = audioBuffer[j];
-				}
-			}
+//			if(db > -7.50){
+//				index[index_iter++] = i/3200;
+//				for(int j = i; j < i + buffer.length; j++){
+//					if(j >= audioBuffer.length) break;
+//					new_audioBuffer[new_iter++] = audioBuffer[j];
+//				}
+//			}
 			
 		}
 		
